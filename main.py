@@ -24,6 +24,7 @@ import os
 import json
 import discord
 from discord import app_commands
+from discord.utils import escape_mentions
 from dotenv import load_dotenv
 
 load_dotenv()  # reads a .env file in the same directory, if present
@@ -253,6 +254,7 @@ async def whisper(interaction: discord.Interaction, role: discord.Role, message:
 
     sender = interaction.user
     channel_id = interaction.channel_id
+    message = escape_mentions(message)
 
     sender_role_id = role_registered_to_channel(channel_id)
     if sender_role_id is None or sender_role_id not in [r.id for r in sender.roles]:
@@ -288,7 +290,10 @@ async def whisper(interaction: discord.Interaction, role: discord.Role, message:
     # 1. Deliver full message to the target's private channel.
     sender_role = interaction.guild.get_role(sender_role_id)
     sender_label = sender_role.name if sender_role else sender.display_name
-    await target_channel.send(f"Whisper from {sender_label}: {message}")
+    await target_channel.send(
+        f"**Whisper from {sender_label}:** {message}",
+        allowed_mentions=discord.AllowedMentions(users=False, roles=False, everyone=False),
+    )
 
     # 2. Public log — no content, just the fact a whisper happened.
     if public_channel:
@@ -296,9 +301,15 @@ async def whisper(interaction: discord.Interaction, role: discord.Role, message:
 
     # 3. Blackmailer channel — full copy, like a moderator log.
     if spy_channel:
-        await spy_channel.send(f"{sender_label} Whispers {role.name}: {message}")
+        await spy_channel.send(
+            f"{sender_label} Whispers {role.name}: {message}",
+            allowed_mentions=discord.AllowedMentions(users=False, roles=False, everyone=False),
+        )
 
-    await interaction.channel.send(f"You whispered {role.name}: {message}")
+    await interaction.channel.send(
+        f"**You whispered {role.name}:** {message}",
+        allowed_mentions=discord.AllowedMentions(users=False, roles=False, everyone=False),
+    )
     await interaction.response.send_message("Whisper sent.", ephemeral=True)
 
 
